@@ -10,6 +10,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 
@@ -33,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     String res = await AuthProvider().login(
         email: _emailController.text, password: _passwordController.text);
     if (res == 'success') {
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()));
       // Navigator.of(context).pushAndRemoveUntil(
@@ -75,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 'Welcome to PassMan',
                 style: TextStyle(color: mobileBackgroundColor, fontSize: 25),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Flexible(
                 flex: 2,
                 child: Image.asset(
@@ -111,15 +113,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(
                 height: 20,
               ),
+              const SizedBox(height: 20, child: Text('Forgot Password?')),
               InkWell(
+                onTap: loginUser,
                 child: Container(
-                  child: !_isLoading
-                      ? const Text(
-                          'Log in',
-                        )
-                      : const CircularProgressIndicator(
-                          // color: primaryColor,
-                          ),
                   width: double.infinity,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -129,26 +126,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     color: Colors.white,
                   ),
+                  child: !_isLoading
+                      ? const Text('Log in')
+                      : const CircularProgressIndicator(),
                 ),
-                onTap: loginUser,
               ),
               const SizedBox(
                 height: 0,
               ),
-              // Flexible(
-              //   child: Container(),
-              //   flex: 2,
-              // ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: const Text(
                       'Dont have an account?',
                       style:
                           TextStyle(color: Color.fromARGB(255, 111, 187, 248)),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(
@@ -157,6 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: const Text(
                         ' Signup.',
                         style: TextStyle(
@@ -165,7 +161,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
                 ],

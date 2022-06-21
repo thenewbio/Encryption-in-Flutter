@@ -1,16 +1,21 @@
+import 'package:dynamic_themes/dynamic_themes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:pass_man/providers/ads_state.dart';
 import 'package:pass_man/views/home_view.dart';
 import 'package:pass_man/views/login_view.dart';
 import 'package:provider/provider.dart';
+import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
 
 // ignore: constant_identifier_names
 const ENCRYPTION_KEY = "20120isvba;9310291299390pvm'v";
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  AdmobHelper.initialization();
   if (kIsWeb) {
     await Firebase.initializeApp(
         options: const FirebaseOptions(
@@ -34,25 +39,40 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(),
-        ),
-      ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'PassMan',
-        theme: ThemeData(
-            useMaterial3: true,
-            primarySwatch: Colors.purple,
-            primaryColor: Colors.purple[400],
-            buttonColor: Colors.pink[400],
-            scaffoldBackgroundColor: Colors.white70,
-            hoverColor: Colors.red[600]),
-        // home:
+        providers: [
+          ChangeNotifierProvider(
+            create: (_) => UserProvider(),
+          ),
+        ],
+        child: DynamicTheme(
+          themeCollection: themeCollection,
+          defaultThemeId: AppThemes.dark,
+          builder: (context, themeData) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'PassMan',
+            theme: themeData,
+            home: StreamBuilder(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.active) {
+                  // Checking if the snapshot has any data or not
+                  if (snapshot.hasData) {
+                    // if snapshot has data which means user is logged in then we check the width of screen and accordingly display the screen layout
+                    return const HomeScreen();
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('${snapshot.error}'));
+                  }
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-        home: HomeScreen(),
-      ),
-    );
+                return const LoginScreen();
+              },
+            ),
+          ),
+        ));
   }
 }

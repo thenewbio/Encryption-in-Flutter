@@ -1,8 +1,5 @@
-import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:igodo/igodo.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:pass_man/main.dart';
 import 'package:pass_man/providers/auth_provider.dart';
 import 'package:pass_man/views/home_view.dart';
@@ -16,6 +13,7 @@ class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _SignupScreenState createState() => _SignupScreenState();
 }
 
@@ -28,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final iv = keys.IV.fromSecureRandom(16);
   bool _isLoading = false;
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void dispose() {
@@ -55,6 +53,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
     // if string returned is sucess, user has been created
     if (res == "success") {
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );

@@ -1,21 +1,22 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dynamic_themes/dynamic_themes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:igodo/igodo.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pass_man/main.dart';
 import 'package:pass_man/providers/auth_provider.dart';
 import 'package:pass_man/providers/firestore_provider.dart';
 import 'package:pass_man/providers/user_provider.dart';
-import 'package:pass_man/views/add_data.dart';
-import 'package:encrypt/encrypt.dart' as keys;
-import 'package:pass_man/views/encrypt.dart';
 import 'package:pass_man/widgets/home_widget.dart';
+import 'package:pass_man/widgets/selectable.dart';
 import 'package:provider/provider.dart';
 import '../constants/colors.dart';
-import '../model/user.dart' as model;
+import '../providers/theme_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -29,6 +30,55 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = false;
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool ishidden = false;
+  int dropdownValue = 0;
+  BannerAd? _anchoredAdaptiveAd;
+  bool _isLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadAd();
+  }
+
+  Future<void> _loadAd() async {
+    final AnchoredAdaptiveBannerAdSize? size =
+        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+            MediaQuery.of(context).size.width.truncate());
+    if (size == null) {
+      // print('Unable to get height of anchored banner.');
+      return;
+    }
+
+    _anchoredAdaptiveAd = BannerAd(
+        adUnitId:
+            Platform.isAndroid ? 'ca-app-pub-3940256099942544/6300978111' : '',
+        size: size,
+        request: const AdRequest(),
+        listener: BannerAdListener(onAdLoaded: (Ad ad) {
+          setState(() {
+            // When the ad is loaded, get the ad size and use it to set
+            _anchoredAdaptiveAd = ad as BannerAd;
+            _isLoaded = true;
+          });
+        }, onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          ad.dispose();
+        }));
+    return _anchoredAdaptiveAd!.load();
+  }
+
+  changeEye() {
+    setState(() {
+      ishidden = !ishidden;
+    });
+  }
+
+  change(value) async {
+    await DynamicTheme.of(context)!.setTheme(value);
+    setState(() {
+      dropdownValue = value;
+    });
+  }
 
   selectImage() async {
     Uint8List im = await pickImage(ImageSource.gallery);
@@ -63,12 +113,14 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           isLoading = false;
         });
+        // ignore: use_build_context_synchronously
         showSnackBar(
           context,
           'Posted!',
         );
         clearImage();
       } else {
+        // ignore: use_build_context_synchronously
         showSnackBar(context, res);
       }
     } catch (err) {
@@ -93,6 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
     _userController.dispose();
     _passwordController.dispose();
+    _anchoredAdaptiveAd!.dispose();
   }
 
   @override
@@ -102,9 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   addData() async {
-    UserProvider _userProvider =
+    UserProvider userProvider =
         Provider.of<UserProvider>(context, listen: false);
-    await _userProvider.refreshUser();
+    await userProvider.refreshUser();
   }
 
   final Stream<QuerySnapshot> _usersStream = FirebaseFirestore.instance
@@ -113,13 +166,15 @@ class _HomeScreenState extends State<HomeScreen> {
       .snapshots();
   @override
   Widget build(BuildContext context) {
+    dropdownValue = DynamicTheme.of(context)!.themeId;
     Widget slideLeftBackground() {
       return Container(
         color: Colors.red,
         child: Align(
+          alignment: Alignment.centerRight,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [
+            children: const [
               Icon(
                 Icons.delete,
                 color: Colors.white,
@@ -132,12 +187,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 textAlign: TextAlign.right,
               ),
-              const SizedBox(
+              SizedBox(
                 width: 20,
               ),
             ],
           ),
-          alignment: Alignment.centerRight,
         ),
       );
     }
@@ -146,9 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return Container(
         color: Colors.green,
         child: Align(
+          alignment: Alignment.centerLeft,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
+            children: const <Widget>[
               SizedBox(
                 width: 20,
               ),
@@ -166,7 +221,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          alignment: Alignment.centerLeft,
         ),
       );
     }
@@ -176,6 +230,25 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('Pass Man'),
           centerTitle: true,
           actions: [
+            IconButton(
+              onPressed: () {
+                changeEye();
+              },
+              icon: ishidden
+                  ? const Icon(Icons.visibility)
+                  : const Icon(Icons.visibility_off),
+            ),
+            PopupMenuButton(
+              onSelected: (value) {
+                change(value);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                    value: AppThemes.lightRed, child: Text('Light mode')),
+                const PopupMenuItem(
+                    value: AppThemes.dark, child: Text('Dark mode'))
+              ],
+            ),
             IconButton(
                 onPressed: () {
                   AuthProvider().logOut();
@@ -197,6 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
               return ListView.builder(
+                  physics: const BouncingScrollPhysics(),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final desc = snapshot.data!.docs[index].get('desc');
@@ -205,38 +279,99 @@ class _HomeScreenState extends State<HomeScreen> {
                         IgodoEncryption.decryptSymmetric(desc, ENCRYPTION_KEY);
                     String pass1 =
                         IgodoEncryption.decryptSymmetric(pass, ENCRYPTION_KEY);
-                    return Dismissible(
-                      background: slideLeftBackground(),
-                      secondaryBackground: slideRightBackground(),
-                      key: Key(snapshot.data!.docs[index].get('postId')),
-                      child: Card(
-                        elevation: 10,
-                        // color: Colors.teal[400],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                              backgroundImage: NetworkImage(
-                                  (snapshot.data!.docs[index].get('postUrl')))),
-                          title: Text(name),
-                          subtitle: Text(pass1),
-                          trailing: IconButton(
-                              onPressed: () {
-                                FireStoreMethod().deletePost(
-                                    snapshot.data!.docs[index].get("postId"));
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Dismissible(
+                              key: const Key(''),
+                              background: slideRightBackground(),
+                              secondaryBackground: slideLeftBackground(),
+                              confirmDismiss: (direction) async {
+                                if (direction == DismissDirection.endToStart) {
+                                  final bool res = await showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          content: Text(
+                                              "Are you sure you want to delete $name?"),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              child: const Text(
+                                                "Cancel",
+                                                style: TextStyle(
+                                                    color: Colors.black),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                            TextButton(
+                                              child: const Text(
+                                                "Delete",
+                                                style: TextStyle(
+                                                    color: Colors.red),
+                                              ),
+                                              onPressed: () {
+                                                FireStoreMethod().deletePost(
+                                                    snapshot.data!.docs[index]
+                                                        .get("postId"));
+                                                setState(() {});
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      });
+                                  return res;
+                                } else {
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (_) => HomeWidget(
+                                            name: desc,
+                                            desc: pass,
+                                            img: snapshot.data!.docs[index]
+                                                .get('postUrl'),
+                                          )));
+                                }
                               },
-                              icon: const Icon(Icons.delete)),
-                        ),
+                              child: Card(
+                                elevation: 10,
+                                // color: Colors.teal[400],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                      backgroundImage: NetworkImage((snapshot
+                                          .data!.docs[index]
+                                          .get('postUrl')))),
+                                  title: ishidden
+                                      ? Selectable(
+                                          name: name,
+                                          align: TextAlign.center,
+                                        )
+                                      : Text(desc),
+                                  subtitle: ishidden
+                                      ? Selectable(
+                                          name: pass1,
+                                          align: TextAlign.start,
+                                        )
+                                      : Text(pass),
+                                ),
+                              )),
+                          // ignore: unnecessary_null_comparison
+                          if (_anchoredAdaptiveAd != null && _isLoaded)
+                            Container(
+                                color: Colors.green,
+                                width:
+                                    _anchoredAdaptiveAd!.size.width.toDouble(),
+                                height:
+                                    _anchoredAdaptiveAd!.size.height.toDouble(),
+                                child: AdWidget(ad: _anchoredAdaptiveAd!)),
+                        ],
                       ),
                     );
                   });
             }),
-        //       children: snapshot.data!.docs.map((DocumentSnapshot document) {
-
-        //     );
-        //   },
-        // ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             showModalBottomSheet(

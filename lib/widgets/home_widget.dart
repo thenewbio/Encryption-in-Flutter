@@ -1,66 +1,124 @@
+import 'dart:typed_data';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pass_man/providers/firestore_provider.dart';
-import 'package:encrypt/encrypt.dart' as keys;
-import 'package:pass_man/views/encrypt.dart';
+import 'package:igodo/igodo.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:pass_man/main.dart';
+import 'package:pass_man/model/user.dart' as model;
+import 'package:pass_man/providers/storage_provider.dart';
+import 'package:pass_man/providers/user_provider.dart';
+import 'package:provider/provider.dart';
 import '../constants/colors.dart';
 
 class HomeWidget extends StatefulWidget {
-  final dynamic snap;
-  const HomeWidget({Key? key, this.snap}) : super(key: key);
+  final String name;
+  final String desc;
+  final String img;
+  const HomeWidget(
+      {Key? key, required this.name, required this.desc, required this.img})
+      : super(key: key);
 
   @override
   State<HomeWidget> createState() => _HomeWidgetState();
 }
 
 class _HomeWidgetState extends State<HomeWidget> {
-  deletePost(String postId) async {
-    try {
-      await FireStoreMethod().deletePost(postId);
-    } catch (err) {
-      showSnackBar(
-        context,
-        err.toString(),
-      );
-    }
-  }
-
-  final key = keys.Key.fromSecureRandom(32);
-  final iv = keys.IV.fromSecureRandom(16);
-
-  decryptData() {
-    final encrypter = keys.Encrypter(keys.AES(key));
-    final encrypted =
-        encrypter.decrypt(widget.snap['desc'], iv: iv) as keys.Encrypted;
-    return encrypted;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    decryptData();
-  }
+  Uint8List? _file;
+  final TextEditingController _descController = TextEditingController();
+  final TextEditingController _passController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    var plainText = EncryptData.decryptAES(widget.snap["desc"]);
-    print(plainText);
-    return Card(
-      elevation: 10,
-      // color: Colors.teal[400],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit profile'),
       ),
-      child: ListTile(
-        leading:
-            CircleAvatar(backgroundImage: NetworkImage(widget.snap["postUrl"])),
-        title: Text(widget.snap['desc']),
-        subtitle: Text(widget.snap["userName"]),
-        trailing: IconButton(
-            onPressed: () {
-              deletePost(widget.snap["postId"]);
-            },
-            icon: const Icon(Icons.delete)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Stack(
+                children: [
+                  _file != null
+                      ? CircleAvatar(
+                          radius: 70,
+                          backgroundImage: MemoryImage(_file!),
+                          backgroundColor: Colors.red,
+                        )
+                      : CircleAvatar(
+                          radius: 70,
+                          // backgroundImage: NetworkImage(widget.img),
+                          backgroundColor: Colors.red,
+                        ),
+                  Positioned(
+                    bottom: -10,
+                    left: 80,
+                    child: IconButton(
+                      onPressed: selectImage,
+                      icon: const Icon(
+                        Icons.add_a_photo,
+                        color: Colors.black38,
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              TextField(
+                controller: _descController,
+                decoration: InputDecoration(
+                    labelText: 'Description',
+                    hintText: widget.desc,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20))),
+              ),
+              TextField(
+                controller: _passController,
+                decoration: InputDecoration(
+                    labelText: 'name',
+                    hintText: widget.name,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20))),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                  onPressed: editPost, child: const Text('Update Post'))
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  selectImage() {
+    Uint8List img = pickImage(ImageSource.gallery);
+    setState(() {
+      _file = img;
+    });
+  }
+
+  void editPost() async {
+    String name =
+        IgodoEncryption.encryptSymmetric(_descController.text, ENCRYPTION_KEY);
+    String pass1 =
+        IgodoEncryption.encryptSymmetric(_passController.text, ENCRYPTION_KEY);
+    final model.User user =
+        Provider.of<UserProvider>(context, listen: false).getUser;
+    Map<String, dynamic> snap = {};
+    if (_file != null) {
+      String url = await StorageMethods().uploadImage('data', _file!, false);
+      snap["postUrl"] = url;
+    }
+    snap['desc'] = name;
+    snap['userName'] = pass1;
+    FirebaseFirestore.instance
+        .collection('data')
+        .doc(user.uid)
+        .update(snap)
+        .then((value) {
+      Navigator.of(context).pop();
+    });
   }
 }

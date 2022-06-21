@@ -29,19 +29,22 @@ environment:
 dependencies:
   cloud_firestore: ^3.1.17
   cupertino_icons: ^1.0.2
+  dynamic_themes: ^1.1.0
   encrypt: ^5.0.1
   firebase_auth: ^3.3.19
   firebase_core: ^1.17.1
   firebase_storage: ^10.2.17
   flutter:
     sdk: flutter
-  image_picker: ^0.8.5+3
-  provider: ^6.0.3
-  uuid: ^3.0.6
+  google_mobile_ads: ^1.2.0
   igodo:
     git:
-      url:  https://github.com/Crazelu/igodo.git
+      url: https://github.com/Crazelu/igodo.git
       ref: main
+  image_picker: ^0.8.5+3
+  local_auth: ^2.1.0
+  provider: ^6.0.3
+  uuid: ^3.0.6
 
 dev_dependencies:
   flutter_lints: ^2.0.0
