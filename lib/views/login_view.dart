@@ -37,15 +37,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()));
-      // Navigator.of(context).pushAndRemoveUntil(
-      //     MaterialPageRoute(
-      //       builder: (context) => const ResponsiveLayout(
-      //         mobileScreenLayout: MobileScreenLayout(),
-      //         webScreenLayout: WebScreenLayout(),
-      //       ),
-      //     ),
-      //     (route) => false);
-
       setState(() {
         _isLoading = false;
       });
@@ -53,7 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoading = false;
       });
-      // showSnackBar(context, res);
+      // ignore: use_build_context_synchronously
+      showSnackBar(context, res);
     }
   }
 
@@ -86,10 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: 70,
                 ),
               ),
-              // SizedBox(
-              //   height: MediaQuery.of(context).size.height / 5,
-              // ),
-
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: TextFieldInput(
@@ -127,7 +115,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.white,
                   ),
                   child: !_isLoading
-                      ? const Text('Log in')
+                      ? const Text('Log in',
+                          style: TextStyle(color: Colors.black, fontSize: 20))
                       : const CircularProgressIndicator(),
                 ),
               ),
@@ -157,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ' Signup.',
                         style: TextStyle(
                           fontSize: 20,
-                          // color: mobileBackgroundColor,
+                          color: mobileBackgroundColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
