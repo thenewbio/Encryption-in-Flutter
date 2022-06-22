@@ -11,8 +11,10 @@ import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
 
+// you can create your own encryption key here
+// add in the string ENCRYPTION_KEY
 // ignore: constant_identifier_names
-const ENCRYPTION_KEY = "20120isvba;9310291299390pvm'v";
+const String ENCRYPTION_KEY = "";
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AdmobHelper.initialization();
